@@ -1,12 +1,7 @@
-// ===============================
-// Config
-// ===============================
-
-// Make these mutable so we can resize dynamically
+// core visual config
 let SCREEN_W = 1280;
 let SCREEN_H = 720;
 
-// Internal grid resolution for performance vs detail
 const GRID_W = 300;
 const GRID_H = 200;
 
@@ -14,7 +9,7 @@ const FFT_SIZE = 2048;
 const AUDIO_SMOOTHING = 0.9;
 const BASS_PULSE_SMOOTHING = 0.7;
 
-// Color palettes - preset gradients
+// simple color palette presets
 const PALETTES = [
   {
     name: "Psychedelic Bloom",
@@ -70,15 +65,11 @@ let paletteBlend = 1.0;
 let autoPaletteTimer = 0.0;
 let currentPalette = PALETTES[0];
 
-// Kaleidoscope config
 const KALEIDO_BASE_SEGMENTS = 8;
 const KALEIDO_MIN_SEGMENTS = 6;
 const KALEIDO_MAX_SEGMENTS = 24;
 
-// ===============================
-// Canvas setup
-// ===============================
-
+// canvas bits
 const mainCanvas = document.getElementById("mainCanvas");
 const mainCtx = mainCanvas.getContext("2d");
 
@@ -90,7 +81,6 @@ const gridCtx = gridCanvas.getContext("2d");
 const gridImageData = gridCtx.createImageData(GRID_W, GRID_H);
 const gridPixels = gridImageData.data;
 
-// Dynamic resolution so it matches the current monitor or window
 function resizeCanvas() {
   const dpr = window.devicePixelRatio || 1;
 
@@ -112,7 +102,7 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener("resize", resizeCanvas);
 
-// Precompute grid
+// precomputed polar grid
 const X = new Float32Array(GRID_W * GRID_H);
 const Y = new Float32Array(GRID_W * GRID_H);
 const R = new Float32Array(GRID_W * GRID_H);
@@ -144,10 +134,7 @@ const ThetaCos = new Float32Array(GRID_W * GRID_H);
   }
 })();
 
-// ===============================
-// Audio globals
-// ===============================
-
+// audio state
 let audioCtx = null;
 let analyser = null;
 let timeDomainData = null;
@@ -180,19 +167,16 @@ let lastBlockTime = performance.now();
 let lastSubBassOnsetScaled = 0.0;
 let lastBassOnsetScaled = 0.0;
 
-// Beat detection globals
+// tiny beat model for the overlay
 let beatEnergy = 0.0;
 let prevBeatEnergy = 0.0;
 let beatTrigger = 0.0;
-let beatPhase = 0.0;      // 0..1
-let beatTempo = 2.0;      // beats per second, around 120 bpm
-let beatInterval = 0.5;   // seconds between beats
+let beatPhase = 0.0;
+let beatTempo = 2.0;
+let beatInterval = 0.5;
 let lastBeatTime = performance.now();
 
-// ===============================
-// Visual phase state
-// ===============================
-
+// visual phases that keep drifting
 let phaseRadial = 0.0;
 let phaseAngular = 0.0;
 let phaseRipple = 0.0;
@@ -207,10 +191,6 @@ let historyIndex = 0;
 const dtHistory = new Float32Array(7);
 dtHistory.fill(1.0 / 60.0);
 let dtIndex = 0;
-
-// ===============================
-// Palette helpers
-// ===============================
 
 function lerp(a, b, t) {
   return a + (b - a) * t;
@@ -237,10 +217,6 @@ function startPaletteTransition(newIndex) {
   paletteBlend = 0.0;
 }
 
-// ===============================
-// HSV to RGB
-// ===============================
-
 function hsvToRgb(h, s, v) {
   const i = Math.floor(h * 6.0);
   const f = h * 6.0 - i;
@@ -262,10 +238,7 @@ function hsvToRgb(h, s, v) {
   return [r, g, b];
 }
 
-// ===============================
-// FFT helpers
-// ===============================
-
+// builds the masks for frequency bands
 function initFftHelpers() {
   const binCount = analyser.frequencyBinCount;
   sampleRate = audioCtx.sampleRate;
@@ -291,10 +264,7 @@ function initFftHelpers() {
   trebleMask = makeMask(2000, 16000);
 }
 
-// ===============================
-// Audio init
-// ===============================
-
+// sets up microphone or loopback input
 async function initAudio(deviceId) {
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   analyser = audioCtx.createAnalyser();
@@ -320,10 +290,7 @@ async function initAudio(deviceId) {
   initFftHelpers();
 }
 
-// ===============================
-// Audio processing
-// ===============================
-
+// turns raw audio into higher level features
 function updateAudioFeatures() {
   if (!analyser) return;
 
@@ -385,7 +352,6 @@ function updateAudioFeatures() {
 
   lastBlockTime = performance.now();
 
-  // Onset based features
   const subBassOnset = Math.max(0.0, subBassPulse - prevSubBassPulse);
   const bassOnset = Math.max(0.0, bassPulse - prevBassPulse);
 
@@ -395,7 +361,6 @@ function updateAudioFeatures() {
   lastSubBassOnsetScaled = subBassOnsetScaled;
   lastBassOnsetScaled = bassOnsetScaled;
 
-  // Beat detection driven by low band onsets
   const rawBeatEnergy = subBassOnsetScaled * 1.2 + bassOnsetScaled;
   const now = performance.now();
   const energyRise = rawBeatEnergy - prevBeatEnergy;
@@ -421,12 +386,8 @@ function updateAudioFeatures() {
   beatEnergy = rawBeatEnergy;
 }
 
-// ===============================
-// Visualization
-// ===============================
-
+// this is the main visual core
 function renderFrame(dt) {
-  // History smoothing
   volumeHistory[historyIndex] = audioVolume;
   bassHistory[historyIndex] = subBassEnergy;
   historyIndex = (historyIndex + 1) % volumeHistory.length;
@@ -451,7 +412,6 @@ function renderFrame(dt) {
 
   const drumContinuous = Math.min(bass + midBass * 0.8, 10.0);
 
-  // Beat tempo phase update
   const minTempo = 0.7;
   const maxTempo = 4.0;
   const tempo = Math.max(minTempo, Math.min(beatTempo || 2.0, maxTempo));
@@ -461,7 +421,6 @@ function renderFrame(dt) {
   const beatWave = 0.5 + 0.5 * Math.sin(beatPhase * Math.PI * 2.0);
   const beatVisualPulse = beatWave * (0.35 + 0.65 * beatTrigger);
 
-  // Palette auto transition and blending
   autoPaletteTimer += dt;
   const paletteEnergy = vol + mids + treb;
   if (autoPaletteTimer > AUTO_PALETTE_MIN_INTERVAL && paletteEnergy > AUTO_PALETTE_ENERGY_THRESHOLD) {
@@ -480,7 +439,6 @@ function renderFrame(dt) {
   const paletteSatPower = activePalette.satPower;
   const paletteValBoost = activePalette.valBoost;
 
-  // Motion
   const zoomBase = 1.0 + subBass * 0.03 + beatVisualPulse * 0.25;
   const zoomSwing = 0.12 * Math.sin(phasePulse * 1.5);
   const zoom = zoomBase + zoomSwing;
@@ -511,7 +469,6 @@ function renderFrame(dt) {
   const pixelCount = GRID_W * GRID_H;
   const drumSegments = 18;
 
-  // Kaleidoscope: audio reactive segment count and rotation
   let kaleidoSegments = Math.round(
     KALEIDO_BASE_SEGMENTS +
     treb * 0.6 +
@@ -526,7 +483,6 @@ function renderFrame(dt) {
   const segAngle = twoPi / kaleidoSegments;
   const kaleidoRotation = phaseAngular * 0.4 + treb * 0.03;
 
-  // Aural vibration profile
   const percussiveEnergy = drumContinuous;
   const tonalEnergy = mids + treb;
 
@@ -541,19 +497,15 @@ function renderFrame(dt) {
   for (let idx = 0; idx < pixelCount; idx++) {
     const rBase = R[idx];
 
-    // Original angle
     let th = Theta[idx] + kaleidoRotation;
 
-    // Wrap to [0, 2pi)
     th = ((th % twoPi) + twoPi) % twoPi;
 
-    // Fold into a wedge for kaleidoscope mirroring
     let folded = th % segAngle;
     if (folded > segAngle * 0.5) {
       folded = segAngle - folded;
     }
 
-    // Center the wedge
     const thK = folded - segAngle * 0.25;
 
     const tSin = Math.sin(thK);
@@ -592,7 +544,6 @@ function renderFrame(dt) {
 
     let totalRingMask = 0.0;
 
-    // Existing macro rings
     for (let i = 0; i < ringRadii.length; i++) {
       const baseRadius = ringRadii[i];
 
@@ -618,7 +569,6 @@ function renderFrame(dt) {
       totalRingMask += ringMask * ringStrengths[i];
     }
 
-    // New multi aural rings that respond to drums and bass intensity
     const auralRingConfigs = [
       { baseRadius: 0.18, baseWidth: 0.014, strength: 0.9 },
       { baseRadius: 0.30, baseWidth: 0.014, strength: 1.1 },
@@ -663,7 +613,6 @@ function renderFrame(dt) {
       sat += ringContribution * 0.22;
     }
 
-    // Dedicated beat aural ring
     const beatRingRadiusBase = 0.22 + 0.16 * beatVisualPulse;
     const beatRingWidth = 0.016 + 0.007 * beatTrigger;
     const beatDiff = rBase - beatRingRadiusBase;
@@ -726,10 +675,7 @@ function renderFrame(dt) {
   drawOverlay(mainCtx);
 }
 
-// ===============================
-// Overlay
-// ===============================
-
+// draws simple beat flash on top
 function drawBeatFlash(ctx) {
   let strength = beatTrigger * 2.0 + beatEnergy * 0.08;
   strength = Math.max(0.0, Math.min(strength, 10.0));
@@ -763,10 +709,7 @@ function drawOverlay(ctx) {
   drawBeatFlash(ctx);
 }
 
-// ===============================
-// Main loop
-// ===============================
-
+// the animation loop
 let lastTime = performance.now();
 
 function frameLoop() {
@@ -793,10 +736,7 @@ function frameLoop() {
   requestAnimationFrame(frameLoop);
 }
 
-// ===============================
-// Device selection UI glue
-// ===============================
-
+// audio device selection helper
 async function populateDevices() {
   const select = document.getElementById("deviceSelect");
   const status = document.getElementById("status");
@@ -855,7 +795,7 @@ window.addEventListener("load", () => {
   });
 });
 
-// Palette hotkeys 1 to 6
+// number keys let you swap palettes
 window.addEventListener("keydown", (e) => {
   if (e.key >= "1" && e.key <= "6") {
     const index = parseInt(e.key, 10) - 1;
