@@ -40,6 +40,6 @@ webaudio powered xbox 360 style audio visualizer. fft driven radial field, kalei
 
 
 
-## demo ! 
+## demo ! (epilepsy warning)
 [video folder](https://shorturl.at/Qg2tr)
 
