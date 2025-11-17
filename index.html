@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Xbox 360 Audio Visualizer</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+    }
+    #hud {
+      position: fixed;
+      top: 8px;
+      left: 10px;
+      color: #ddd;
+      font-family: system-ui, sans-serif;
+      font-size: 13px;
+      background: rgba(0,0,0,0.6);
+      padding: 6px 10px;
+      border-radius: 5px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      z-index: 10;
+    }
+    #deviceSelect {
+      background: #111;
+      color: #eee;
+      border: 1px solid #555;
+      border-radius: 3px;
+      padding: 2px 4px;
+      font-size: 12px;
+    }
+    #startBtn {
+      background: #1db954;
+      color: #fff;
+      border: none;
+      border-radius: 3px;
+      padding: 3px 8px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    #startBtn:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="hud">
+    <span>Input:</span>
+    <select id="deviceSelect"></select>
+    <button id="startBtn">Start visualizer</button>
+    <span id="status" style="margin-left:4px; opacity:0.8;">Select "BlackHole 2ch" here</span>
+  </div>
+
+  <canvas id="mainCanvas" width="1280" height="720"></canvas>
+
+  <script src="xbox360_viz.js"></script>
+</body>
+</html>
